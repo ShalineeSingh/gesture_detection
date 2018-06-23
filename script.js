@@ -61,6 +61,10 @@ var blendContext = blendCanvas.getContext('2d');
 var messageArea = document.getElementById("messageArea");
 
 var frame_number = 0;
+var motion_frame_gap = 7;
+var frame_gap_count = 0;
+var motion_array = [];
+var motion_frame_array = [];
 // these changes are permanent
 videoContext.translate(320, 0);
 videoContext.scale(-1, 1);
@@ -112,13 +116,23 @@ function blend() {
     // console.log(blendedData.data);
     blendContext.putImageData(blendedData, 0, 0);
 
+    if (motion_array.length >= 7) {
+        findMotion();
+
+    }
+
     // store the current webcam image
     lastImageData = sourceData;
 }
 
+function findMotion() {
+    console.log(motion_frame_array);
+    console.log(motion_array);
+    motion_array = [];
+    motion_frame_array = [];
+}
+
 function checkDiff(currentImage, lastImage, output) {
-
-
     var i = 0;
     while (i < (currentImage.length / 4)) {
         var average1 = (currentImage[4 * i] + currentImage[4 * i + 1] + currentImage[4 * i + 2]) / 3;
@@ -143,27 +157,6 @@ function threshold(value) {
 
 
 function checkHotspots() {
-
-    // get the pixels in a note area from the blended image
-    // var blendedData = blendContext.getImageData(0, 0, 50, 50);
-
-    // // calculate the average lightness of the blended data
-    // var i = 0;
-    // var sum = 0;
-    // var countPixels = blendedData.data.length * 0.25;
-    // while (i < countPixels) {
-    //     sum += (blendedData.data[i * 4] + blendedData.data[i * 4 + 1] + blendedData.data[i * 4 + 2]);
-    //     ++i;
-    // }
-    // // calculate an average between of the color values of the note area [0-255]
-    // var average = Math.round(sum / (3 * countPixels));
-    // if (average > 10) // more than 20% movement detected
-    // {
-
-    //     messageArea.innerHTML = "<font color= red> Something Moved. </font>";
-    // } else {
-    //     messageArea.innerHTML = "<font color=black> .... </font>";
-    // }
     var blendedData0 = blendContext.getImageData(0, 0, 100, 50);
     var blendedData1 = blendContext.getImageData(100, 0, 100, 50);
     var blendedData2 = blendContext.getImageData(200, 0, 100, 50);
@@ -176,6 +169,7 @@ function checkHotspots() {
 
     var data1 = [blendedData0, blendedData1, blendedData2, blendedData3, blendedData4, blendedData5, blendedData6, blendedData7, blendedData8];
     // calculate the average lightness of the blended data
+    /* var motion_array = []; */
     for (var x = 0; x < data1.length; x++) {
         var i = 0;
         var sum = 0;
@@ -186,15 +180,22 @@ function checkHotspots() {
             sum += (data1[x].data[i * 4] + data1[x].data[i * 4 + 1] + data1[x].data[i * 4 + 2]);
             ++i;
         }
-
         // calculate an average between of the color values of the note area [0-255]
         var average = Math.round(sum / (3 * countPixels));
         if (average > 40) // more than 20% movement detected
         {
-            console.log(frame_number + ' : ' + x);
-            messageArea.innerHTML = "<font color= red> Something Moved in " + x + ". </font>";
-        } else {
-            messageArea.innerHTML = "<font color=black> .... </font>";
+            motion_array.push(x);
+            motion_frame_array.push(frame_number);
+            /* if (frame_gap_count < motion_frame_gap) {
+                motion_array.push(x);
+                frame_gap_count++;
+            } else {
+                frame_gap_count = 0;
+            }
+            console.log(frame_number + ' : ' + x); */
         }
     }
+    // if (motion_array.length > 0) {
+    //     console.log(motion_array);
+    // }
 }
