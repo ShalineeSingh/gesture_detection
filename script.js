@@ -13,14 +13,17 @@ if (!window.requestAnimationFrame) {
             window.msRequestAnimationFrame ||
             function ( /* function FrameRequestCallback */ callback, /* DOMElement Element */ element) {
 
-                window.setTimeout(callback, 1000 / 100);
+                window.setTimeout(callback, 1000 / 60);
 
             };
+
     })();
+
 }
 
 
 //---- Request animation ends ---/
+
 navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 window.URL = window.URL || window.webkitURL;
 
@@ -39,6 +42,7 @@ function gotStream(stream) {
     {
         camvideo.src = stream;
     }
+
 }
 
 function noStream(e) {
@@ -50,40 +54,50 @@ function noStream(e) {
 var video = document.getElementById('myCam');
 var videoCanvas = document.getElementById('videoCanvas');
 var videoContext = videoCanvas.getContext('2d');
+
 var blendCanvas = document.getElementById("blendCanvas");
 var blendContext = blendCanvas.getContext('2d');
 
+var messageArea = document.getElementById("messageArea");
+
+var frame_number = 0;
+// these changes are permanent
 videoContext.translate(320, 0);
 videoContext.scale(-1, 1);
-
-var lastImageData;
-var frame_number = 0;
-var max_row_each_frame = [];
-var valid_stand_difference = videoCanvas.height / 4;
 
 // background color if no video present
 videoContext.fillStyle = '#eaeaea';
 videoContext.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
 
+
+
+// start the loop               
+animate();
+
 function animate() {
     requestAnimationFrame(animate);
+
     render();
     blend();
+    checkHotspots();
 }
 
 function render() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
         // mirror video
         videoContext.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+
     }
 }
+
+var lastImageData;
 
 function blend() {
     var width = videoCanvas.width;
     var height = videoCanvas.height;
     // get current webcam image data
     var sourceData = videoContext.getImageData(0, 0, width, height);
-    // create an image if the previous image doesnot exist
+    // create an image if the previous image doesn�t exist
     if (!lastImageData) {
         frame_number = 0;
         lastImageData = videoContext.getImageData(0, 0, width, height);
@@ -95,162 +109,28 @@ function blend() {
     // blend the 2 images
     checkDiff(sourceData.data, lastImageData.data, blendedData.data);
     // draw the result in a canvas
-    if (Object.keys(max_row_each_frame).length === 25) {
-        findMotion();
-        max_row_each_frame = [];
-    }
+    // console.log(blendedData.data);
     blendContext.putImageData(blendedData, 0, 0);
+
     // store the current webcam image
     lastImageData = sourceData;
 }
 
 function checkDiff(currentImage, lastImage, output) {
+
+
     var i = 0;
-    var col_array = [];
-    var row_array = [];
-    var ones_count = 0;
-    var change_in_image = false;
-    /*console.log('frame : '  + frame_number);*/
     while (i < (currentImage.length / 4)) {
         var average1 = (currentImage[4 * i] + currentImage[4 * i + 1] + currentImage[4 * i + 2]) / 3;
         var average2 = (lastImage[4 * i] + lastImage[4 * i + 1] + lastImage[4 * i + 2]) / 3;
         var diff = threshold((average1 - average2));
-        if (diff !== 0) {
-            change_in_image = true;
-        }
-        row_array.push(diff);
-        if ((i + 1) % videoCanvas.width === 0) {
-            var current_ones = numberOfOnes(row_array);
-            if (current_ones > ones_count) {
-                ones_count = current_ones;
-            }
-            col_array.push(row_array);
-            row_array = [];
-        }
+        //var diff = average1 - average2;
         output[4 * i] = diff;
         output[4 * i + 1] = diff;
         output[4 * i + 2] = diff;
         output[4 * i + 3] = 0xff;
         ++i;
     }
-    if (change_in_image === true) {
-        // console.log('--------FRAME -----' + frame_number + ' ones : ' + ones_count);
-        max_row_each_frame.push(ones_count);
-        // for (var x = 0; x < col_array.length; x++) {
-        //     console.log(col_array[x]);
-        // }
-        // console.log(max_row_each_frame);
-    }
-}
-
-function findMotion() {
-    var stands = generateStands();
-    var valid_stands = getValidStands(stands);
-    var longest_stand = getLongestStand(valid_stands);
-    var prominent_motion = getProminentMotion(longest_stand); // var stand_motion = getValidStandsMotion(longest_stand);
-    console.log(prominent_motion);
-}
-
-function getProminentMotion(longest_stand) {
-    if (longest_stand) {
-        if (longest_stand[0] > longest_stand[1]) {
-            return 'up';
-        } else if (longest_stand[0] < longest_stand[1]) {
-            return 'down';
-        } else {
-            return 'equal';
-        }
-    } else {
-        return 'no motion detected';
-    }
-}
-
-function getLongestStand(valid_stands) {
-    var longest_stand = valid_stands[0];
-    for (var i = 0; i < valid_stands.length; i++) {
-        if (longest_stand.length >= valid_stands[i].length) {
-            longest_stand = valid_stands[i];
-        }
-    }
-    // console.log(longest_stand);
-    return longest_stand;
-}
-
-function getValidStandsMotion(valid_stands) {
-    var motions = [];
-    console.log(valid_stands);
-    for (var i = 0; i < valid_stands.length; i++) {
-        if (valid_stands[i][0] > valid_stands[i][1]) {
-            motions.push('up');
-        } else {
-            motions.push('down');
-        }
-    }
-    return motions;
-}
-
-function getValidStands(stands) {
-    var valid_stands_array = [];
-    for (var i = 0; i < stands.length; i++) {
-        var each_stand = stands[i];
-        if (Math.max.apply(null, each_stand) - Math.min.apply(null, each_stand) >= valid_stand_difference) {
-            valid_stands_array.push(each_stand);
-        }
-    }
-    return valid_stands_array;
-}
-
-function generateStands() {
-    var stands = [];
-    var temp_array = [];
-    var isGreater = true;
-    var isLesser = true;
-    for (var i = 0; i < max_row_each_frame.length - 1; i++) {
-        var currentFrameOnesCount = max_row_each_frame[i];
-        var nextFrameOnesCount = max_row_each_frame[i + 1];
-        if (currentFrameOnesCount > nextFrameOnesCount) {
-            isLesser = true;
-            if (isGreater) {
-                if (temp_array.length > 0) {
-                    temp_array.push(max_row_each_frame[i]);
-                    stands.push(temp_array);
-                }
-                temp_array = [];
-                isGreater = false;
-            }
-            temp_array.push(max_row_each_frame[i]);
-        } else if (currentFrameOnesCount < nextFrameOnesCount) {
-            isGreater = true;
-            if (isLesser) {
-                if (temp_array.length > 0) {
-                    temp_array.push(max_row_each_frame[i]);
-                    stands.push(temp_array);
-                }
-                temp_array = [];
-                isLesser = false;
-            }
-            temp_array.push(max_row_each_frame[i]);
-        } else {
-            isLesser = true;
-            isGreater = true;
-            temp_array.push(max_row_each_frame[i + 1]);
-        }
-    }
-    if (temp_array.length > 0) {
-        temp_array.push(max_row_each_frame[i]);
-        stands.push(temp_array);
-    }
-    return stands;
-}
-
-function numberOfOnes(array) {
-    var count = 0;
-    for (var i = 0; i < array.length; i++) {
-        if (array[i] === 255) {
-            count++;
-        }
-    }
-    return count;
 }
 
 function fastAbs(value) {
@@ -260,5 +140,61 @@ function fastAbs(value) {
 function threshold(value) {
     return (value > 0x15) ? 0xFF : 0;
 }
-// start the loop               
-animate();
+
+
+function checkHotspots() {
+
+    // get the pixels in a note area from the blended image
+    // var blendedData = blendContext.getImageData(0, 0, 50, 50);
+
+    // // calculate the average lightness of the blended data
+    // var i = 0;
+    // var sum = 0;
+    // var countPixels = blendedData.data.length * 0.25;
+    // while (i < countPixels) {
+    //     sum += (blendedData.data[i * 4] + blendedData.data[i * 4 + 1] + blendedData.data[i * 4 + 2]);
+    //     ++i;
+    // }
+    // // calculate an average between of the color values of the note area [0-255]
+    // var average = Math.round(sum / (3 * countPixels));
+    // if (average > 10) // more than 20% movement detected
+    // {
+
+    //     messageArea.innerHTML = "<font color= red> Something Moved. </font>";
+    // } else {
+    //     messageArea.innerHTML = "<font color=black> .... </font>";
+    // }
+    var blendedData0 = blendContext.getImageData(0, 0, 100, 50);
+    var blendedData1 = blendContext.getImageData(100, 0, 100, 50);
+    var blendedData2 = blendContext.getImageData(200, 0, 100, 50);
+    var blendedData3 = blendContext.getImageData(0, 50, 100, 50);
+    var blendedData4 = blendContext.getImageData(100, 50, 100, 50);
+    var blendedData5 = blendContext.getImageData(200, 50, 100, 50);
+    var blendedData6 = blendContext.getImageData(0, 100, 100, 50);
+    var blendedData7 = blendContext.getImageData(100, 100, 100, 50);
+    var blendedData8 = blendContext.getImageData(200, 100, 100, 50);
+
+    var data1 = [blendedData0, blendedData1, blendedData2, blendedData3, blendedData4, blendedData5, blendedData6, blendedData7, blendedData8];
+    // calculate the average lightness of the blended data
+    for (var x = 0; x < data1.length; x++) {
+        var i = 0;
+        var sum = 0;
+        var countPixels;
+
+        countPixels = data1[x].data.length * 0.25;
+        while (i < countPixels) {
+            sum += (data1[x].data[i * 4] + data1[x].data[i * 4 + 1] + data1[x].data[i * 4 + 2]);
+            ++i;
+        }
+
+        // calculate an average between of the color values of the note area [0-255]
+        var average = Math.round(sum / (3 * countPixels));
+        if (average > 40) // more than 20% movement detected
+        {
+            console.log(frame_number + ' : ' + x);
+            messageArea.innerHTML = "<font color= red> Something Moved in " + x + ". </font>";
+        } else {
+            messageArea.innerHTML = "<font color=black> .... </font>";
+        }
+    }
+}
