@@ -5,55 +5,58 @@
     <title>Motion Detection in JS</title>
     <meta charset="utf-8">
     <style>
-    body {
-        font-family: Monospace;
-        font-weight: bold;
-        background-color: #f9f9f9;
-        margin: 5px;
-        width: 700px;
-        margin: 0 auto;
-        background-color: red;
-    }
-    
-    #myCam {
-        display: none;
-        width: 5px;
-        height: 5px;
-    }
-    #scrollable{
-        min-height: 130vh;
-        background-color: blanchedalmond;
-    }
-    canvas {
-        width: 5px;
-        height: 5px;
-        font-family: Arial;
-    }
-    
-    #messageArea {
-        font-size: 36px;
-        text-align: center;
-        margin: 20px;
-    }
-    #video{
-       width: 5px;
-        height: 5px;  
-    }
+        body {
+            font-family: Monospace;
+            font-weight: bold;
+            background-color: #f9f9f9;
+            margin: 5px;
+            width: 700px;
+            margin: 0 auto;
+            background-color: cadetblue;
+        }
+
+        #myCam {
+            display: none;
+            width: 320px;
+            height: 240px;
+        }
+
+        #scrollable {
+            min-height: 130vh;
+            background-color: blanchedalmond;
+        }
+
+        canvas {
+            width: 320px;
+            height: 240px;
+            font-family: Arial;
+        }
+
+        #messageArea {
+            font-size: 36px;
+            text-align: center;
+            margin: 20px;
+        }
+
+        /* #video {
+            width: 320px;
+            height: 240px;
+        } */
     </style>
 </head>
 
 <body>
     <div id="video">
-    <video id="myCam" autoplay></video>
-    <canvas id="videoCanvas" height="10" width="20"></canvas>
-    <canvas id="blendCanvas"></canvas>
+        <video id="myCam" autoplay></video>
+        <canvas id="videoCanvas"></canvas>
+        <canvas id="blendCanvas"></canvas>
     </div>
-    <div id="messageArea"> hi</div>
+    <!-- <div id="messageArea"> hi</div>
     <div id="scrollable">
         hello world
-    </div>
-    
-<script type="text/javascript" src='script.js'></script>
+    </div> -->
+
+    <script type="text/javascript" src='script.js'></script>
 </body>
 
 
